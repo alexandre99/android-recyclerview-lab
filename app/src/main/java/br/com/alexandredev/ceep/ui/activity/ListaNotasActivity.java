@@ -16,33 +16,41 @@ import br.com.alexandredev.ceep.dao.NotaDAO;
 import br.com.alexandredev.ceep.model.Nota;
 import br.com.alexandredev.ceep.ui.recycler.ListaNotasAdapter;
 
+import static br.com.alexandredev.ceep.ui.activity.NotaActivityConstantes.CHAVE_NOTA;
+import static br.com.alexandredev.ceep.ui.activity.NotaActivityConstantes.CODIGO_REQUISICAO_INSERE_NOTA;
+import static br.com.alexandredev.ceep.ui.activity.NotaActivityConstantes.CODIGO_RESULTADO_NOTA_CRIADA;
+
 public class ListaNotasActivity extends AppCompatActivity {
 
     private ListaNotasAdapter adapter;
-    private List<Nota> todasNotas;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_lista_notas);
 
-        todasNotas = notasDeExemplo();
+        List<Nota> todasNotas = pegaTodasNotas();
         configuraRecyclerView(todasNotas);
+        configuraBotaoInsereNota();
+    }
 
+    private void configuraBotaoInsereNota() {
         TextView botaoInsereNota = findViewById(R.id.lista_notas_insere_nota);
         botaoInsereNota.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent iniciarFormularioNota = new Intent(ListaNotasActivity.this, FormularioNotaActivity.class);
-                startActivityForResult(iniciarFormularioNota, 1);
+                vaiParaFormularioNotaActivity();
             }
         });
     }
 
-    private List<Nota> notasDeExemplo() {
+    private void vaiParaFormularioNotaActivity() {
+        Intent iniciarFormularioNota = new Intent(ListaNotasActivity.this, FormularioNotaActivity.class);
+        startActivityForResult(iniciarFormularioNota, CODIGO_REQUISICAO_INSERE_NOTA);
+    }
+
+    private List<Nota> pegaTodasNotas() {
         NotaDAO dao = new NotaDAO();
-        dao.insere(new Nota("Primeira nota", "Descrição pequena"),
-                new Nota("Segunda nota", "Segunda descrição é bem maior que a da primeira nota"));
         return dao.todos();
     }
 
@@ -58,11 +66,31 @@ public class ListaNotasActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == 1 && resultCode == 2 && data.hasExtra("nota")) {
+        if (ehResultadoComNota(requestCode, resultCode, data)) {
             Nota notaRecebida = (Nota) data.getSerializableExtra("nota");
-            new NotaDAO().insere(notaRecebida);
-            adapter.adiciona(notaRecebida);
+            adiciona(notaRecebida);
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private void adiciona(Nota nota) {
+        new NotaDAO().insere(nota);
+        adapter.adiciona(nota);
+    }
+
+    private boolean ehResultadoComNota(int requestCode, int resultCode, Intent data) {
+        return ehCodigoRequisicaoInsereNota(requestCode) && ehCodigoResultadoNotaCriada(resultCode) && temNota(data);
+    }
+
+    private boolean temNota(Intent data) {
+        return data.hasExtra(CHAVE_NOTA);
+    }
+
+    private boolean ehCodigoResultadoNotaCriada(int resultCode) {
+        return resultCode == CODIGO_RESULTADO_NOTA_CRIADA;
+    }
+
+    private boolean ehCodigoRequisicaoInsereNota(int requestCode) {
+        return requestCode == CODIGO_REQUISICAO_INSERE_NOTA;
     }
 }
